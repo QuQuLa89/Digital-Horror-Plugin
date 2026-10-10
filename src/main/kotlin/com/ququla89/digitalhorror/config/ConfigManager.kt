@@ -80,6 +80,34 @@ class ConfigManager(private val plugin: JavaPlugin) {
             volume = positiveDouble("audio-anomaly.volume", 0.25).toFloat(),
             pitchMin = positiveDouble("audio-anomaly.pitch-min", 0.65).toFloat(),
             pitchMax = positiveDouble("audio-anomaly.pitch-max", 0.95).toFloat(),
+            glassBreak =
+            GlassBreakSettings(
+                enabled = getBoolean("audio-anomaly.glass-break.enabled", true),
+                chance = probability("audio-anomaly.glass-break.chance", 0.02),
+                volume = positiveDouble("audio-anomaly.glass-break.volume", 0.6).toFloat(),
+                pitch = positiveDouble("audio-anomaly.glass-break.pitch", 0.55).toFloat(),
+            ),
+            phantomMiner =
+            PhantomMinerSettings(
+                enabled = getBoolean("audio-anomaly.phantom-miner.enabled", true),
+                checkIntervalTicks =
+                positiveLong("audio-anomaly.phantom-miner.check-interval-ticks", 3600L),
+                chance = probability("audio-anomaly.phantom-miner.chance", 0.20),
+                minDistance = positiveDouble("audio-anomaly.phantom-miner.min-distance", 5.0),
+                maxDistance = positiveDouble("audio-anomaly.phantom-miner.max-distance", 12.0),
+                minVerticalOffset = getDouble("audio-anomaly.phantom-miner.min-vertical-offset", -4.0),
+                maxVerticalOffset = getDouble("audio-anomaly.phantom-miner.max-vertical-offset", -1.0),
+                approachDistance =
+                positiveDouble("audio-anomaly.phantom-miner.approach-distance", 3.5),
+                hitIntervalTicks =
+                positiveLong("audio-anomaly.phantom-miner.hit-interval-ticks", 5L),
+                breakIntervalTicks =
+                positiveLong("audio-anomaly.phantom-miner.break-interval-ticks", 10L),
+                hitsPerBlock = positiveInt("audio-anomaly.phantom-miner.hits-per-block", 4),
+                blockCount = positiveInt("audio-anomaly.phantom-miner.block-count", 4),
+                volume = positiveDouble("audio-anomaly.phantom-miner.volume", 0.45).toFloat(),
+                pitch = positiveDouble("audio-anomaly.phantom-miner.pitch", 0.8).toFloat(),
+            ),
         ),
         hallucination =
         HallucinationSettings(
@@ -101,6 +129,17 @@ class ConfigManager(private val plugin: JavaPlugin) {
                 durationTicks = positiveLong("hallucination.held-item.duration-ticks", 30L),
                 names = stringList("hallucination.held-item.names"),
             ),
+            underwaterDarkness =
+            UnderwaterDarknessSettings(
+                enabled = getBoolean("hallucination.underwater-darkness.enabled", true),
+                checkIntervalTicks =
+                positiveLong("hallucination.underwater-darkness.check-interval-ticks", 40L),
+                chance = probability("hallucination.underwater-darkness.chance", 0.12),
+                durationTicks =
+                positiveInt("hallucination.underwater-darkness.duration-ticks", 80),
+                cooldownTicks =
+                positiveLong("hallucination.underwater-darkness.cooldown-ticks", 900L),
+            ),
         ),
     )
 
@@ -112,6 +151,9 @@ class ConfigManager(private val plugin: JavaPlugin) {
 
     private fun FileConfiguration.positiveDouble(path: String, fallback: Double): Double =
         getDouble(path, fallback).coerceAtLeast(0.01)
+
+    private fun FileConfiguration.positiveInt(path: String, fallback: Int): Int =
+        getInt(path, fallback).coerceAtLeast(1)
 
     private fun FileConfiguration.stringList(path: String): List<String> =
         getStringList(path).filter(String::isNotBlank)
@@ -177,6 +219,27 @@ data class AudioAnomalySettings(
     val volume: Float,
     val pitchMin: Float,
     val pitchMax: Float,
+    val glassBreak: GlassBreakSettings,
+    val phantomMiner: PhantomMinerSettings,
+)
+
+data class GlassBreakSettings(val enabled: Boolean, val chance: Double, val volume: Float, val pitch: Float)
+
+data class PhantomMinerSettings(
+    val enabled: Boolean,
+    val checkIntervalTicks: Long,
+    val chance: Double,
+    val minDistance: Double,
+    val maxDistance: Double,
+    val minVerticalOffset: Double,
+    val maxVerticalOffset: Double,
+    val approachDistance: Double,
+    val hitIntervalTicks: Long,
+    val breakIntervalTicks: Long,
+    val hitsPerBlock: Int,
+    val blockCount: Int,
+    val volume: Float,
+    val pitch: Float,
 )
 
 data class HallucinationSettings(
@@ -184,6 +247,7 @@ data class HallucinationSettings(
     val checkIntervalTicks: Long,
     val door: DoorHallucinationSettings,
     val heldItem: HeldItemHallucinationSettings,
+    val underwaterDarkness: UnderwaterDarknessSettings,
 )
 
 data class DoorHallucinationSettings(
@@ -199,4 +263,12 @@ data class HeldItemHallucinationSettings(
     val chance: Double,
     val durationTicks: Long,
     val names: List<String>,
+)
+
+data class UnderwaterDarknessSettings(
+    val enabled: Boolean,
+    val checkIntervalTicks: Long,
+    val chance: Double,
+    val durationTicks: Int,
+    val cooldownTicks: Long,
 )

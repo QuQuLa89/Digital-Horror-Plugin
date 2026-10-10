@@ -9,11 +9,14 @@ import com.ququla89.digitalhorror.util.rollChance
 import com.ququla89.digitalhorror.util.toHorrorComponent
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.data.Openable
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
+import org.bukkit.potion.PotionEffect
+import org.bukkit.potion.PotionEffectType
 import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
 
@@ -28,6 +31,7 @@ class HallucinationFeature(
     private val taskIds = mutableSetOf<Int>()
     private val activeDoors = mutableMapOf<UUID, DoorIllusion>()
     private val activeItemGlitches = mutableSetOf<UUID>()
+    private val lastUnderwaterDarknessAt = mutableMapOf<UUID, Long>()
 
     override fun enable() {
         if (isEnabled || !settings.enabled) return
@@ -45,6 +49,16 @@ class HallucinationFeature(
             Bukkit.getScheduler()
                 .runTaskTimer(plugin, Runnable(::updateDoorIllusions), 5L, 5L)
                 .taskId
+        if (settings.underwaterDarkness.enabled) {
+            taskIds +=
+                Bukkit.getScheduler()
+                    .runTaskTimer(
+                        plugin,
+                        Runnable(::checkUnderwaterDarkness),
+                        settings.underwaterDarkness.checkIntervalTicks,
+                        settings.underwaterDarkness.checkIntervalTicks,
+                    ).taskId
+        }
     }
 
     override fun disable() {
@@ -58,6 +72,7 @@ class HallucinationFeature(
             Bukkit.getPlayer(playerId)?.takeIf(Player::isOnline)?.let(::restoreHeldItem)
         }
         activeItemGlitches.clear()
+        lastUnderwaterDarknessAt.clear()
     }
 
     private fun runHallucinationCheck() {
@@ -169,6 +184,38 @@ class HallucinationFeature(
         sendHeldItemPacket(player, player.inventory.itemInMainHand)
     }
 
+    private fun checkUnderwaterDarkness() {
+        if (!isEnabled) return
+        val effect = settings.underwaterDarkness
+        val now = System.nanoTime()
+        val cooldownNanos = effect.cooldownTicks.coerceAtMost(Long.MAX_VALUE / NANOS_PER_TICK) * NANOS_PER_TICK
+        val onlineIds = Bukkit.getOnlinePlayers().mapTo(mutableSetOf()) { it.uniqueId }
+        lastUnderwaterDarknessAt.keys.removeIf { it !in onlineIds }
+
+        Bukkit.getOnlinePlayers().forEach { player ->
+            val lastTriggeredAt = lastUnderwaterDarknessAt[player.uniqueId]
+            val coolingDown = lastTriggeredAt != null && now - lastTriggeredAt < cooldownNanos
+            if (
+                !player.isDead &&
+                player.eyeLocation.block.type == Material.WATER &&
+                !coolingDown &&
+                effect.chance.rollChance()
+            ) {
+                player.addPotionEffect(
+                    PotionEffect(
+                        PotionEffectType.DARKNESS,
+                        effect.durationTicks,
+                        0,
+                        true,
+                        false,
+                        false,
+                    ),
+                )
+                lastUnderwaterDarknessAt[player.uniqueId] = now
+            }
+        }
+    }
+
     private fun sendHeldItemPacket(player: Player, item: ItemStack): Boolean = runCatching {
         val packet = protocolManager.createPacket(PacketType.Play.Server.SET_SLOT)
         packet.modifier.writeDefaults()
@@ -191,4 +238,8 @@ class HallucinationFeature(
     }
 
     private data class DoorIllusion(val location: Location, var ageTicks: Long = 0L)
+
+    private companion object {
+        const val NANOS_PER_TICK = 50_000_000L
+    }
 }

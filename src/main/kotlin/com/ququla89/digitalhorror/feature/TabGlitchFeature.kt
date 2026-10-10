@@ -66,9 +66,11 @@ class TabGlitchFeature(
         val profile = WrappedGameProfile(fakeId, fakeName.take(16))
         val data =
             PlayerInfoData(
-                profile,
+                fakeId,
                 999,
+                true,
                 EnumWrappers.NativeGameMode.SPECTATOR,
+                profile,
                 WrappedChatComponent.fromText(fakeName),
             )
 

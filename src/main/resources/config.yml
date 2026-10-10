@@ -63,6 +63,7 @@ unseen-watcher:
     restore-after-ticks: 100
 
 audio-anomaly:
+  # 足音、遠隔音、低いガラス音、幻影の採掘者をまとめて有効化します。
   enabled: true
   # 移動状態を確認する間隔です。
   movement-check-interval-ticks: 2
@@ -78,8 +79,38 @@ audio-anomaly:
   volume: 0.25
   pitch-min: 0.65
   pitch-max: 0.95
+  glass-break:
+    # ガラス系以外のブロックを壊したとき、低いガラス破壊音を本人だけに再生します。
+    enabled: true
+    chance: 0.02
+    volume: 0.6
+    # 通常より不自然に低い音程です。標準値は 0.55 です。
+    pitch: 0.55
+  phantom-miner:
+    # 周囲の壁の中から、実在しない採掘音を一定のリズムで再生します。
+    enabled: true
+    # 発生を抽選する間隔です。3600 tick は約3分です。
+    check-interval-ticks: 3600
+    chance: 0.20
+    # 音源を探す水平距離の範囲です。
+    min-distance: 5.0
+    max-distance: 12.0
+    # プレイヤーの目線を基準に、音源を探す上下方向の範囲です。負の値は下方向です。
+    min-vertical-offset: -4.0
+    max-vertical-offset: -1.0
+    # 音源へこの距離未満まで近づくと、採掘音は即座に停止します。
+    approach-distance: 3.5
+    # 石を叩く音の間隔と、石が壊れて次のブロックへ移るまでの間隔です。
+    hit-interval-ticks: 5
+    break-interval-ticks: 10
+    # 1ブロックあたりの打撃回数と、一連の演出で壊すブロック数です。
+    hits-per-block: 4
+    block-count: 4
+    volume: 0.45
+    pitch: 0.8
 
 hallucination:
+  # ドア、手持ちアイテム、水中の暗闇演出をまとめて有効化します。
   enabled: true
   check-interval-ticks: 700
   door:
@@ -96,3 +127,13 @@ hallucination:
       - "&4%player%の記憶"
       - "&k返してください"
       - "&8見つけました"
+  underwater-darkness:
+    # 目の位置が水中にあるプレイヤーへ、粒子とアイコンを隠した暗闇効果を付与します。
+    enabled: true
+    # 水中にいるか確認し、発生を抽選する間隔です。40 tick は約2秒です。
+    check-interval-ticks: 40
+    chance: 0.12
+    # 暗闇効果の持続時間です。80 tick は約4秒です。
+    duration-ticks: 80
+    # 同じプレイヤーへ再び付与できるまでの時間です。900 tick は約45秒です。
+    cooldown-ticks: 900
