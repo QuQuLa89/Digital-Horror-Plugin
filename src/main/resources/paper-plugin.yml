@@ -1,0 +1,12 @@
+name: DigitalHorror
+version: '${version}'
+main: com.ququla89.digitalhorror.DigitalHorrorPlugin
+description: プレイヤーの認識を揺さぶるデジタルホラー演出を追加します。
+api-version: '1.21'
+author: QuQuLa89
+dependencies:
+  server:
+    ProtocolLib:
+      load: BEFORE
+      required: true
+      join-classpath: true

@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ktlint-check
+        name: ktlint check
+        entry: gradlew.bat ktlintCheck
+        language: system
+        pass_filenames: false
+        files: ".*\\.kts?$"

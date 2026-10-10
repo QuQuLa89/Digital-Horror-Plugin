@@ -1,0 +1,98 @@
+# Digital Horror の設定ファイルです。
+# 確率は 0.0（発生しない）から 1.0（必ず発生する）の範囲で指定します。
+# 時間は特記がない限り tick 単位です。20 tick は約 1 秒です。
+# メッセージでは %player% を対象プレイヤー名に置き換えます。
+# 色コードは &7 や &k のように & を先頭に付けて指定できます。
+
+system-distortion:
+  # 偽チャット、就寝警告、アクションバー演出をまとめて有効化します。
+  enabled: true
+  # オンラインプレイヤーごとに演出を抽選する間隔です。
+  check-interval-ticks: 600
+  fake-chat:
+    enabled: true
+    chance: 0.08
+    messages:
+      - "誰か、今の見えましたか？"
+      - "%player% はここにいません。"
+      - "後ろを見ないでください。"
+  bed-warning:
+    enabled: true
+    chance: 0.35
+    messages:
+      - "&c今は眠ることができません。近くで何かが見ています。"
+      - "&7%player% は、まだ眠ってはいけません。"
+  action-bar:
+    enabled: true
+    chance: 0.12
+    # 文字化け表示から消えるまでの間隔です。
+    fade-step-ticks: 8
+    messages:
+      - "&k%player%を観測しています"
+      - "&k接続を維持しています"
+
+tab-glitch:
+  # ProtocolLib を使い、Tab リストへ偽プレイヤーを一時表示します。
+  enabled: true
+  check-interval-ticks: 900
+  chance: 0.12
+  # 偽プレイヤーを表示しておく時間です。
+  visible-duration-ticks: 30
+  # Minecraft の名前制限に合わせ、各名前は16文字以内を推奨します。
+  fake-names:
+    - "Unseen_Entity"
+    - "NotQuQuLa89"
+    - "Observer_404"
+
+unseen-watcher:
+  # プレイヤーの背後に、見られると消える監視者を生成します。
+  enabled: true
+  check-interval-ticks: 1200
+  spawn-chance: 0.08
+  min-distance: 5.0
+  max-distance: 9.0
+  vertical-offset: 0.0
+  # プレイヤーの水平・垂直視野を簡略化した角度です。
+  field-of-view-degrees: 95.0
+  # 監視者が残れる最長時間です。
+  lifetime-ticks: 200
+  environment-change:
+    # 視界外にレッドストーントーチを一時設置します。
+    enabled: true
+    chance: 0.03
+    restore-after-ticks: 100
+
+audio-anomaly:
+  enabled: true
+  # 移動状態を確認する間隔です。
+  movement-check-interval-ticks: 2
+  # プレイヤーが停止してから足音を再生するまでの時間です。10 tick は約0.5秒です。
+  delayed-footstep-ticks: 10
+  footstep-chance: 0.28
+  # 遠隔音と無音化を抽選する間隔です。
+  ambient-check-interval-ticks: 500
+  distant-sound-chance: 0.12
+  silence-chance: 0.04
+  min-distance: 8.0
+  max-distance: 18.0
+  volume: 0.25
+  pitch-min: 0.65
+  pitch-max: 0.95
+
+hallucination:
+  enabled: true
+  check-interval-ticks: 700
+  door:
+    enabled: true
+    chance: 0.10
+    search-radius: 10
+    restore-distance: 3.0
+    maximum-duration-ticks: 160
+  held-item:
+    enabled: true
+    chance: 0.08
+    duration-ticks: 30
+    names:
+      - "&4%player%の記憶"
+      - "&k返してください"
+      - "&8見つけました"
