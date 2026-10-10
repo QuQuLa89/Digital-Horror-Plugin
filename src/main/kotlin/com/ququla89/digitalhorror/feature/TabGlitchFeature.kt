@@ -3,10 +3,6 @@ package com.ququla89.digitalhorror.feature
 import com.comphenix.protocol.PacketType
 import com.comphenix.protocol.ProtocolManager
 import com.comphenix.protocol.events.PacketContainer
-import com.comphenix.protocol.wrappers.EnumWrappers
-import com.comphenix.protocol.wrappers.PlayerInfoData
-import com.comphenix.protocol.wrappers.WrappedChatComponent
-import com.comphenix.protocol.wrappers.WrappedGameProfile
 import com.ququla89.digitalhorror.config.TabGlitchSettings
 import com.ququla89.digitalhorror.util.randomOrNull
 import com.ququla89.digitalhorror.util.rollChance
@@ -63,23 +59,10 @@ class TabGlitchFeature(
 
     private fun addFakeEntry(player: Player, fakeName: String) {
         val fakeId = UUID.randomUUID()
-        val profile = WrappedGameProfile(fakeId, fakeName.take(16))
-        val data =
-            PlayerInfoData(
-                fakeId,
-                999,
-                true,
-                EnumWrappers.NativeGameMode.SPECTATOR,
-                profile,
-                WrappedChatComponent.fromText(fakeName),
-            )
 
         runCatching {
-            val packet = PacketContainer(PacketType.Play.Server.PLAYER_INFO)
-            packet.playerInfoActions.write(0, EnumSet.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER))
-            val lists = packet.playerInfoDataLists
-            lists.write((lists.size() - 1).coerceAtLeast(0), listOf(data))
-            protocolManager.sendServerPacket(player, packet)
+            val nmsPacket = createAddPlayerPacket(fakeId, fakeName)
+            protocolManager.sendServerPacket(player, PacketContainer.fromPacket(nmsPacket))
             visibleEntries.getOrPut(player.uniqueId, ::mutableSetOf) += fakeId
         }.onFailure { error ->
             plugin.logger.warning("Tab リスト演出の送信に失敗しました: ${error.message}")
@@ -96,6 +79,38 @@ class TabGlitchFeature(
                 settings.visibleDurationTicks,
             )
         taskIds += removalTask.taskId
+    }
+
+    private fun createAddPlayerPacket(fakeId: UUID, fakeName: String): Any {
+        val packetClass = Class.forName("net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket")
+        val entryClass = Class.forName("${packetClass.name}\$Entry")
+        val actionClass = Class.forName("${packetClass.name}\$Action")
+        val profileClass = Class.forName("com.mojang.authlib.GameProfile")
+        val gameTypeClass = Class.forName("net.minecraft.world.level.GameType")
+        val componentClass = Class.forName("net.minecraft.network.chat.Component")
+
+        val profile =
+            profileClass
+                .getConstructor(UUID::class.java, String::class.java)
+                .newInstance(fakeId, fakeName.take(16))
+        val gameMode = gameTypeClass.getField("SPECTATOR").get(null)
+        val displayName = componentClass.getMethod("literal", String::class.java).invoke(null, fakeName)
+        val entryConstructor =
+            entryClass.constructors.firstOrNull { it.parameterCount == 9 }
+                ?: entryClass.constructors.firstOrNull { it.parameterCount == 7 }
+                ?: error("Unsupported ClientboundPlayerInfoUpdatePacket.Entry constructor")
+        val entryArguments =
+            when (entryConstructor.parameterCount) {
+                9 -> arrayOf(fakeId, profile, true, 999, gameMode, displayName, true, 0, null)
+                7 -> arrayOf(fakeId, profile, true, 999, gameMode, displayName, null)
+                else -> error("Unsupported ClientboundPlayerInfoUpdatePacket.Entry constructor")
+            }
+        val entry = entryConstructor.newInstance(*entryArguments)
+        val addPlayerAction = actionClass.getField("ADD_PLAYER").get(null)
+        val actions = EnumSet::class.java.getMethod("of", Enum::class.java).invoke(null, addPlayerAction)
+        val packetConstructor = packetClass.getConstructor(EnumSet::class.java, List::class.java)
+
+        return packetConstructor.newInstance(actions, listOf(entry))
     }
 
     private fun removeFakeEntry(player: Player, fakeId: UUID) {
