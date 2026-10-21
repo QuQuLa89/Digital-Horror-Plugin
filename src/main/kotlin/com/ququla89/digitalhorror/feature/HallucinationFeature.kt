@@ -6,6 +6,7 @@ import com.comphenix.protocol.events.PacketContainer
 import com.ququla89.digitalhorror.config.HallucinationSettings
 import com.ququla89.digitalhorror.util.randomOrNull
 import com.ququla89.digitalhorror.util.rollChance
+import com.ququla89.digitalhorror.util.runTrackedTaskLater
 import com.ququla89.digitalhorror.util.toHorrorComponent
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -168,16 +169,13 @@ class HallucinationFeature(
         if (!sendHeldItemPacket(player, glitched)) return
         activeItemGlitches += player.uniqueId
 
-        val restoreTask =
-            Bukkit.getScheduler().runTaskLater(
-                plugin,
-                Runnable {
-                    if (player.isOnline) restoreHeldItem(player)
-                    activeItemGlitches.remove(player.uniqueId)
-                },
-                settings.heldItem.durationTicks,
-            )
-        taskIds += restoreTask.taskId
+        plugin.runTrackedTaskLater(taskIds, settings.heldItem.durationTicks) {
+            try {
+                if (player.isOnline) restoreHeldItem(player)
+            } finally {
+                activeItemGlitches.remove(player.uniqueId)
+            }
+        }
     }
 
     private fun restoreHeldItem(player: Player) {

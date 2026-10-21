@@ -3,10 +3,10 @@ package com.ququla89.digitalhorror.feature
 import com.ququla89.digitalhorror.config.UnseenWatcherSettings
 import com.ququla89.digitalhorror.util.MathUtil
 import com.ququla89.digitalhorror.util.rollChance
+import com.ququla89.digitalhorror.util.runTrackedTaskLater
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.block.data.BlockData
 import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -22,7 +22,7 @@ class UnseenWatcherFeature(private val plugin: JavaPlugin, private val settings:
 
     private val taskIds = mutableSetOf<Int>()
     private val watchers = mutableMapOf<UUID, ActiveWatcher>()
-    private val temporaryBlocks = mutableMapOf<BlockPosition, BlockData>()
+    private val temporaryTorches = mutableSetOf<TemporaryTorch>()
 
     override fun enable() {
         if (isEnabled || !settings.enabled) return
@@ -49,7 +49,7 @@ class UnseenWatcherFeature(private val plugin: JavaPlugin, private val settings:
         taskIds.clear()
         watchers.values.forEach { it.entity.remove() }
         watchers.clear()
-        temporaryBlocks.keys.toList().forEach(::restoreBlock)
+        temporaryTorches.toList().forEach(::restoreTorch)
     }
 
     private fun runSpawnCheck() {
@@ -148,18 +148,13 @@ class UnseenWatcherFeature(private val plugin: JavaPlugin, private val settings:
         }
 
         val block = candidate.block
-        val position = BlockPosition(block.world.uid, block.x, block.y, block.z)
-        if (temporaryBlocks.containsKey(position)) return
+        val torch = TemporaryTorch(player.uniqueId, block.location)
+        if (!temporaryTorches.add(torch)) return
 
-        temporaryBlocks[position] = block.blockData.clone()
-        block.setType(Material.REDSTONE_TORCH, false)
-        val restoreTask =
-            Bukkit.getScheduler().runTaskLater(
-                plugin,
-                Runnable { restoreBlock(position) },
-                settings.environmentChange.restoreAfterTicks,
-            )
-        taskIds += restoreTask.taskId
+        player.sendBlockChange(torch.location, Material.REDSTONE_TORCH.createBlockData())
+        plugin.runTrackedTaskLater(taskIds, settings.environmentChange.restoreAfterTicks) {
+            restoreTorch(torch)
+        }
     }
 
     private fun findTorchLocation(origin: Location): Location? {
@@ -175,14 +170,16 @@ class UnseenWatcherFeature(private val plugin: JavaPlugin, private val settings:
         return null
     }
 
-    private fun restoreBlock(position: BlockPosition) {
-        val original = temporaryBlocks.remove(position) ?: return
-        val world = Bukkit.getWorld(position.worldId) ?: return
-        val block = world.getBlockAt(position.x, position.y, position.z)
-        if (block.type == Material.REDSTONE_TORCH) block.setBlockData(original, false)
+    private fun restoreTorch(torch: TemporaryTorch) {
+        if (!temporaryTorches.remove(torch)) return
+        val player = Bukkit.getPlayer(torch.playerId) ?: return
+        val location = torch.location
+        if (player.isOnline && player.world == location.world && location.chunk.isLoaded) {
+            player.sendBlockChange(location, location.block.blockData)
+        }
     }
 
     private data class ActiveWatcher(val entity: ArmorStand, var ageTicks: Long = 0L)
 
-    private data class BlockPosition(val worldId: UUID, val x: Int, val y: Int, val z: Int)
+    private data class TemporaryTorch(val playerId: UUID, val location: Location)
 }

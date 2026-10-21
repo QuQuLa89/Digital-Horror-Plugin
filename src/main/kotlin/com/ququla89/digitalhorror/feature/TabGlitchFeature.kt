@@ -6,6 +6,7 @@ import com.comphenix.protocol.events.PacketContainer
 import com.ququla89.digitalhorror.config.TabGlitchSettings
 import com.ququla89.digitalhorror.util.randomOrNull
 import com.ququla89.digitalhorror.util.rollChance
+import com.ququla89.digitalhorror.util.runTrackedTaskLater
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
@@ -69,16 +70,14 @@ class TabGlitchFeature(
             return
         }
 
-        val removalTask =
-            Bukkit.getScheduler().runTaskLater(
-                plugin,
-                Runnable {
-                    if (player.isOnline) removeFakeEntry(player, fakeId)
-                    visibleEntries[player.uniqueId]?.remove(fakeId)
-                },
-                settings.visibleDurationTicks,
-            )
-        taskIds += removalTask.taskId
+        plugin.runTrackedTaskLater(taskIds, settings.visibleDurationTicks) {
+            try {
+                if (player.isOnline) removeFakeEntry(player, fakeId)
+            } finally {
+                visibleEntries[player.uniqueId]?.remove(fakeId)
+                if (visibleEntries[player.uniqueId]?.isEmpty() == true) visibleEntries.remove(player.uniqueId)
+            }
+        }
     }
 
     private fun createAddPlayerPacket(fakeId: UUID, fakeName: String): Any {
