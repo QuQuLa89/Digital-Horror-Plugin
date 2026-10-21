@@ -3,6 +3,7 @@ package com.ququla89.digitalhorror.feature
 import com.ququla89.digitalhorror.config.SystemDistortionSettings
 import com.ququla89.digitalhorror.util.randomOrNull
 import com.ququla89.digitalhorror.util.rollChance
+import com.ququla89.digitalhorror.util.runTrackedTaskLater
 import com.ququla89.digitalhorror.util.toHorrorComponent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -86,15 +87,9 @@ class SystemDistortionFeature(private val plugin: JavaPlugin, private val settin
             )
 
         frames.forEachIndexed { index, frame ->
-            val task =
-                Bukkit.getScheduler().runTaskLater(
-                    plugin,
-                    Runnable {
-                        if (isEnabled && player.isOnline) player.sendActionBar(frame)
-                    },
-                    settings.actionBar.fadeStepTicks * index,
-                )
-            taskIds += task.taskId
+            plugin.runTrackedTaskLater(taskIds, settings.actionBar.fadeStepTicks * index) {
+                if (isEnabled && player.isOnline) player.sendActionBar(frame)
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ import com.ququla89.digitalhorror.config.AudioAnomalySettings
 import com.ququla89.digitalhorror.util.MathUtil
 import com.ququla89.digitalhorror.util.isNear
 import com.ququla89.digitalhorror.util.rollChance
+import com.ququla89.digitalhorror.util.runTrackedTaskLater
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
@@ -118,23 +119,21 @@ class AudioAnomalyFeature(private val plugin: JavaPlugin, private val settings: 
     }
 
     private fun scheduleDelayedFootstep(player: Player, stopLocation: Location) {
-        val task =
-            Bukkit.getScheduler().runTaskLater(
-                plugin,
-                Runnable {
-                    if (!isEnabled || !player.isOnline || !player.location.isNear(stopLocation, 0.2)) return@Runnable
-                    val soundLocation = MathUtil.behindLocation(player, 2.2)
-                    player.playSound(
-                        soundLocation,
-                        Sound.BLOCK_STONE_STEP,
-                        SoundCategory.AMBIENT,
-                        settings.volume,
-                        randomPitch(),
-                    )
-                },
-                settings.delayedFootstepTicks,
+        plugin.runTrackedTaskLater(taskIds, settings.delayedFootstepTicks) {
+            if (!isEnabled || !player.isOnline ||
+                !player.location.isNear(stopLocation, 0.2)
+            ) {
+                return@runTrackedTaskLater
+            }
+            val soundLocation = MathUtil.behindLocation(player, 2.2)
+            player.playSound(
+                soundLocation,
+                Sound.BLOCK_STONE_STEP,
+                SoundCategory.AMBIENT,
+                settings.volume,
+                randomPitch(),
             )
-        taskIds += task.taskId
+        }
     }
 
     private fun checkAmbientAnomalies() {
