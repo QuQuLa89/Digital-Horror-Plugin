@@ -71,7 +71,11 @@ class UnseenWatcherFeature(private val plugin: JavaPlugin, private val settings:
             settings.maxDistance.coerceAtLeast(settings.minDistance + 0.01),
         )
         val spawnLocation = MathUtil.behindLocation(player, distance, settings.verticalOffset)
-        if (!spawnLocation.chunk.isLoaded || !spawnLocation.block.isPassable) return
+        if (!spawnLocation.world.isChunkLoaded(spawnLocation.blockX shr 4, spawnLocation.blockZ shr 4) ||
+            !spawnLocation.block.isPassable
+        ) {
+            return
+        }
 
         val head =
             ItemStack(Material.PLAYER_HEAD).apply {
@@ -90,6 +94,7 @@ class UnseenWatcherFeature(private val plugin: JavaPlugin, private val settings:
                 stand.isInvulnerable = true
                 stand.isSilent = true
                 stand.isCollidable = false
+                stand.isPersistent = false
                 stand.equipment.helmet = head
             }
 
@@ -159,6 +164,7 @@ class UnseenWatcherFeature(private val plugin: JavaPlugin, private val settings:
 
     private fun findTorchLocation(origin: Location): Location? {
         val world = origin.world
+        if (!world.isChunkLoaded(origin.blockX shr 4, origin.blockZ shr 4)) return null
         val centerY = origin.blockY
         for (offset in 0..5) {
             val yOffsets = if (offset == 0) listOf(0) else listOf(offset, -offset)
@@ -174,7 +180,9 @@ class UnseenWatcherFeature(private val plugin: JavaPlugin, private val settings:
         if (!temporaryTorches.remove(torch)) return
         val player = Bukkit.getPlayer(torch.playerId) ?: return
         val location = torch.location
-        if (player.isOnline && player.world == location.world && location.chunk.isLoaded) {
+        if (player.isOnline && player.world == location.world &&
+            location.world.isChunkLoaded(location.blockX shr 4, location.blockZ shr 4)
+        ) {
             player.sendBlockChange(location, location.block.blockData)
         }
     }

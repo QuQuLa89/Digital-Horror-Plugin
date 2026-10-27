@@ -12,7 +12,8 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.block.Block
-import org.bukkit.block.data.Openable
+import org.bukkit.block.data.Bisected
+import org.bukkit.block.data.type.Door
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
@@ -94,10 +95,18 @@ class HallucinationFeature(
 
     private fun showOpenDoor(player: Player) {
         val block = findRandomClosedDoor(player) ?: return
-        val fakeData = block.blockData.clone() as Openable
-        fakeData.isOpen = true
-        player.sendBlockChange(block.location, fakeData)
-        activeDoors[player.uniqueId] = DoorIllusion(block.location.clone())
+        val data = block.blockData as Door
+        val bottom = if (data.half == Bisected.Half.BOTTOM) block else block.getRelative(0, -1, 0)
+        val top = bottom.getRelative(0, 1, 0)
+        val bottomData = bottom.blockData as? Door ?: return
+        val topData = top.blockData as? Door ?: return
+        if (bottomData.half != Bisected.Half.BOTTOM || topData.half != Bisected.Half.TOP) return
+        for ((half, realData) in listOf(bottom to bottomData, top to topData)) {
+            val fakeData = realData.clone() as Door
+            fakeData.isOpen = true
+            player.sendBlockChange(half.location, fakeData)
+        }
+        activeDoors[player.uniqueId] = DoorIllusion(bottom.location.clone(), top.location.clone())
     }
 
     private fun updateDoorIllusions() {
@@ -116,10 +125,7 @@ class HallucinationFeature(
                     illusion.ageTicks >= settings.door.maximumDurationTicks
 
             if (shouldRestore) {
-                player?.takeIf(Player::isOnline)?.sendBlockChange(
-                    illusion.location,
-                    illusion.location.block.blockData,
-                )
+                if (player != null) revertDoor(player, illusion)
                 iterator.remove()
             }
         }
@@ -127,10 +133,19 @@ class HallucinationFeature(
 
     private fun restoreDoor(playerId: UUID) {
         val illusion = activeDoors.remove(playerId) ?: return
-        Bukkit.getPlayer(playerId)?.takeIf(Player::isOnline)?.sendBlockChange(
-            illusion.location,
-            illusion.location.block.blockData,
-        )
+        Bukkit.getPlayer(playerId)?.let { revertDoor(it, illusion) }
+    }
+
+    private fun revertDoor(player: Player, illusion: DoorIllusion) {
+        val location = illusion.location
+        if (!player.isOnline || player.world !== location.world ||
+            !location.world.isChunkLoaded(location.blockX shr 4, location.blockZ shr 4)
+        ) {
+            return
+        }
+        for (half in listOf(location, illusion.topLocation)) {
+            player.sendBlockChange(half, half.block.blockData)
+        }
     }
 
     private fun findRandomClosedDoor(player: Player): Block? {
@@ -141,11 +156,14 @@ class HallucinationFeature(
         var matches = 0
 
         for (x in -radius..radius) {
-            for (y in -4..4) {
-                for (z in -radius..radius) {
-                    val block = center.world.getBlockAt(center.blockX + x, center.blockY + y, center.blockZ + z)
+            for (z in -radius..radius) {
+                val blockX = center.blockX + x
+                val blockZ = center.blockZ + z
+                if (!center.world.isChunkLoaded(blockX shr 4, blockZ shr 4)) continue
+                for (y in -4..4) {
+                    val block = center.world.getBlockAt(blockX, center.blockY + y, blockZ)
                     val data = block.blockData
-                    if (data is Openable && !data.isOpen) {
+                    if (data is Door && data.half == Bisected.Half.BOTTOM && !data.isOpen) {
                         matches++
                         if (random.nextInt(matches) == 0) selected = block
                     }
@@ -235,7 +253,7 @@ class HallucinationFeature(
         }
     }
 
-    private data class DoorIllusion(val location: Location, var ageTicks: Long = 0L)
+    private data class DoorIllusion(val location: Location, val topLocation: Location, var ageTicks: Long = 0L)
 
     private companion object {
         const val NANOS_PER_TICK = 50_000_000L

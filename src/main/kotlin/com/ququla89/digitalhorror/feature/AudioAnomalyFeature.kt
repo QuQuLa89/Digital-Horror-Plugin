@@ -245,7 +245,9 @@ class AudioAnomalyFeature(private val plugin: JavaPlugin, private val settings: 
                 player.eyeLocation.clone()
                     .add(MathUtil.randomHorizontalOffset(effect.minDistance, effect.maxDistance))
                     .add(0.0, verticalOffset, 0.0)
-            if (candidate.chunk.isLoaded && candidate.block.type.isSolid) {
+            if (candidate.world.isChunkLoaded(candidate.blockX shr 4, candidate.blockZ shr 4) &&
+                candidate.block.type.isSolid
+            ) {
                 return candidate.block.location.add(0.5, 0.5, 0.5)
             }
         }

@@ -4,7 +4,6 @@ import com.ququla89.digitalhorror.config.EnvironmentChangeSettings
 import com.ququla89.digitalhorror.config.UnseenWatcherSettings
 import com.ququla89.digitalhorror.feature.UnseenWatcherFeature
 import org.bukkit.Bukkit
-import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
@@ -37,7 +36,6 @@ class UnseenWatcherFeatureTest {
             val player = mock(Player::class.java)
             val block = mock(Block::class.java)
             val support = mock(Block::class.java)
-            val chunk = mock(Chunk::class.java)
             val fakeTorch = mock(BlockData::class.java)
             val changedData = mock(BlockData::class.java)
             val air = mock(Material::class.java)
@@ -56,7 +54,6 @@ class UnseenWatcherFeatureTest {
             `when`(player.location).thenReturn(Location(world, 0.0, 64.0, 0.0))
             `when`(player.eyeLocation).thenReturn(Location(world, 0.0, 65.0, 0.0))
             `when`(world.getBlockAt(any(Location::class.java))).thenReturn(block)
-            `when`(world.getChunkAt(any(Location::class.java))).thenReturn(chunk)
             `when`(
                 world.getBlockAt(
                     org.mockito.ArgumentMatchers.anyInt(),
@@ -65,9 +62,8 @@ class UnseenWatcherFeatureTest {
                 ),
             ).thenReturn(block)
             `when`(
-                world.getChunkAt(org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt()),
-            ).thenReturn(chunk)
-            `when`(chunk.isLoaded).thenReturn(true)
+                world.isChunkLoaded(org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt()),
+            ).thenReturn(true)
             `when`(block.type).thenReturn(air)
             `when`(block.location).thenReturn(location)
             `when`(block.getRelative(0, -1, 0)).thenReturn(support)

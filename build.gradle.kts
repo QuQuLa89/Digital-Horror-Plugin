@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.ququla89"
-version = "1.0.1"
+version = "1.0.2"
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
@@ -18,6 +18,7 @@ dependencies {
     testImplementation(kotlin("test-junit5"))
     testImplementation("org.mockito:mockito-core:5.20.0")
     testImplementation("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+    testImplementation("com.comphenix.protocol:ProtocolLib:5.3.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -39,6 +40,7 @@ tasks {
     }
 
     processResources {
+        inputs.property("version", project.version)
         filesMatching("paper-plugin.yml") {
             expand("version" to project.version)
         }
